@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:app_cliente/core/services/location_service.dart';
 import 'package:app_cliente/features/incident_report/domain/incident_model.dart';
 import 'package:app_cliente/features/tracking/application/tracking_provider.dart';
 import 'package:app_cliente/features/incident_report/application/incident_provider.dart';
@@ -87,10 +90,20 @@ class _LiveTrackingViewState extends ConsumerState<_LiveTrackingView> {
   late Timer _moveTimer;
   double _mechanicProgress = 0.0;
   bool _arrived = false;
+  LatLng? _userPosition;
+  StreamSubscription<LocationData>? _locationSub;
+  final MapController _mapController = MapController();
+
+  // Posición simulada del taller (offset desde el usuario)
+  static const double _mechanicOffsetLat = 0.02; // ~2km al norte
+  static const double _mechanicOffsetLng = -0.015;
 
   @override
   void initState() {
     super.initState();
+    _userPosition = LatLng(widget.incident.latitude, widget.incident.longitude);
+    _startLocationStream();
+
     if (widget.incident.status == IncidentStatus.enProceso) {
       _mechanicProgress = 0.15;
       _moveTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
@@ -109,9 +122,20 @@ class _LiveTrackingViewState extends ConsumerState<_LiveTrackingView> {
     }
   }
 
+  void _startLocationStream() {
+    _locationSub = ref.read(locationServiceProvider).getLocationStream().listen((loc) {
+      if (!mounted) return;
+      setState(() {
+        _userPosition = LatLng(loc.latitude, loc.longitude);
+      });
+      _mapController.move(LatLng(loc.latitude, loc.longitude), 15);
+    });
+  }
+
   @override
   void dispose() {
     _moveTimer.cancel();
+    _locationSub?.cancel();
     super.dispose();
   }
 
@@ -125,15 +149,63 @@ class _LiveTrackingViewState extends ConsumerState<_LiveTrackingView> {
     return (((1.0 - _mechanicProgress) * 2.3) * 10).round() / 10;
   }
 
+  LatLng get _mechanicPosition {
+    final user = _userPosition ?? LatLng(widget.incident.latitude, widget.incident.longitude);
+    final start = LatLng(user.latitude + _mechanicOffsetLat, user.longitude + _mechanicOffsetLng);
+    return LatLng(
+      start.latitude + (user.latitude - start.latitude) * _mechanicProgress,
+      start.longitude + (user.longitude - start.longitude) * _mechanicProgress,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final incident = widget.incident;
     final isPending = incident.status == IncidentStatus.pendiente;
+    final userLatLng = _userPosition ?? LatLng(incident.latitude, incident.longitude);
+    final mechanicLatLng = _mechanicPosition;
 
     return Scaffold(
       body: Stack(
         children: [
-          _TrackingMap(mechanicProgress: _mechanicProgress, arrived: _arrived),
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: userLatLng,
+              initialZoom: 14,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
+              ),
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.app_cliente',
+              ),
+              MarkerLayer(
+                markers: [
+                  // Marcador del usuario
+                  Marker(
+                    point: userLatLng,
+                    width: 44,
+                    height: 44,
+                    child: _arrived
+                        ? const Icon(Icons.check_circle, color: Color(0xFF388E3C), size: 44)
+                        : const Icon(Icons.location_on, color: Color(0xFFD32F2F), size: 44),
+                  ),
+                  // Marcador del mecánico (solo si no es pendiente y no ha llegado)
+                  if (!isPending && !_arrived)
+                    Marker(
+                      point: mechanicLatLng,
+                      width: 44,
+                      height: 44,
+                      child: const Icon(Icons.build, color: Color(0xFF1976D2), size: 40),
+                    ),
+                ],
+              ),
+            ],
+          ),
+
           Column(
             children: [
               SafeArea(
@@ -193,115 +265,6 @@ class _LiveTrackingViewState extends ConsumerState<_LiveTrackingView> {
       ),
     );
   }
-}
-
-// ============================================
-// MAPA SIMULADO CON RUTA Y MECÁNICO
-// ============================================
-class _TrackingMap extends StatelessWidget {
-  final double mechanicProgress;
-  final bool arrived;
-  const _TrackingMap({required this.mechanicProgress, required this.arrived});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      color: const Color(0xFFE8EAF6),
-      child: CustomPaint(
-        painter: _TrackingMapPainter(progress: mechanicProgress, arrived: arrived),
-      ),
-    );
-  }
-}
-
-class _TrackingMapPainter extends CustomPainter {
-  final double progress;
-  final bool arrived;
-  _TrackingMapPainter({required this.progress, required this.arrived});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final gridPaint = Paint()..color = Colors.white..strokeWidth = 1;
-    for (double y = 0; y < size.height; y += 50) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-    for (double x = 0; x < size.width; x += 50) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
-    }
-
-    final streetPaint = Paint()..color = Colors.white.withValues(alpha: 0.8)..strokeWidth = 4;
-    canvas.drawLine(Offset(size.width * 0.25, 0), Offset(size.width * 0.25, size.height), streetPaint);
-    canvas.drawLine(Offset(size.width * 0.75, 0), Offset(size.width * 0.75, size.height), streetPaint);
-    canvas.drawLine(Offset(0, size.height * 0.35), Offset(size.width, size.height * 0.35), streetPaint);
-    canvas.drawLine(Offset(0, size.height * 0.65), Offset(size.width, size.height * 0.65), streetPaint);
-
-    final userPos = Offset(size.width * 0.5, size.height * 0.75);
-    final startPos = Offset(size.width * 0.2, size.height * 0.15);
-    final mechanicPos = Offset.lerp(startPos, userPos, progress)!;
-
-    // Ruta
-    final routePaint = Paint()..color = const Color(0xFF1976D2)..strokeWidth = 3..style = PaintingStyle.stroke;
-    final path = Path();
-    path.moveTo(mechanicPos.dx, mechanicPos.dy);
-    final midY = (mechanicPos.dy + userPos.dy) / 2;
-    path.lineTo(mechanicPos.dx, midY);
-    path.lineTo(userPos.dx, midY);
-    path.lineTo(userPos.dx, userPos.dy);
-    canvas.drawPath(path, routePaint);
-
-    // Puntos de ruta
-    final dotPaint = Paint()..color = const Color(0xFF1976D2);
-    for (final dot in [Offset(mechanicPos.dx, mechanicPos.dy), Offset(mechanicPos.dx, midY), Offset(userPos.dx, midY), Offset(userPos.dx, userPos.dy)]) {
-      canvas.drawCircle(dot, 4, dotPaint);
-    }
-
-    // Mecánico
-    if (!arrived) {
-      final mechPaint = Paint()..color = const Color(0xFF1976D2);
-      canvas.drawCircle(mechanicPos, 18, mechPaint);
-      final keyPaint = Paint()..color = Colors.white..strokeWidth = 2..style = PaintingStyle.stroke;
-      canvas.drawCircle(Offset(mechanicPos.dx - 4, mechanicPos.dy - 4), 5, keyPaint);
-      canvas.drawLine(Offset(mechanicPos.dx, mechanicPos.dy - 2), Offset(mechanicPos.dx + 8, mechanicPos.dy + 6), keyPaint);
-
-      final pulsePaint = Paint()..color = const Color(0xFF1976D2).withValues(alpha: 0.2)..style = PaintingStyle.stroke..strokeWidth = 2;
-      canvas.drawCircle(mechanicPos, 28, pulsePaint);
-
-      // Label mecánico
-      final mechTP = TextPainter(text: const TextSpan(text: 'MECÁNICO', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)), textDirection: TextDirection.ltr)..layout();
-      final mechLabelRect = Rect.fromCenter(center: Offset(mechanicPos.dx, mechanicPos.dy + 28), width: mechTP.width + 12, height: mechTP.height + 6);
-      canvas.drawRRect(RRect.fromRectAndRadius(mechLabelRect, const Radius.circular(8)), Paint()..color = const Color(0xFF1976D2));
-      mechTP.paint(canvas, Offset(mechLabelRect.left + 6, mechLabelRect.top + 3));
-    }
-
-    // Usuario
-    final userPaint = Paint()..color = const Color(0xFFD32F2F);
-    if (arrived) {
-      canvas.drawCircle(userPos, 22, Paint()..color = const Color(0xFF388E3C));
-      final checkStroke = Paint()..color = Colors.white..strokeWidth = 3..strokeCap = StrokeCap.round..style = PaintingStyle.stroke;
-      canvas.drawLine(Offset(userPos.dx - 7, userPos.dy), Offset(userPos.dx - 2, userPos.dy + 5), checkStroke);
-      canvas.drawLine(Offset(userPos.dx - 2, userPos.dy + 5), Offset(userPos.dx + 8, userPos.dy - 5), checkStroke);
-    } else {
-      canvas.drawCircle(userPos, 14, userPaint);
-      canvas.drawCircle(userPos, 6, Paint()..color = Colors.white);
-      canvas.drawCircle(userPos, 14, userPaint..style = PaintingStyle.stroke..strokeWidth = 3);
-    }
-
-    // Label "Tú"
-    final userTP = TextPainter(text: const TextSpan(text: 'TÚ', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)), textDirection: TextDirection.ltr)..layout();
-    final userLabelRect = Rect.fromCenter(center: Offset(userPos.dx, userPos.dy + 24), width: userTP.width + 12, height: userTP.height + 6);
-    canvas.drawRRect(RRect.fromRectAndRadius(userLabelRect, const Radius.circular(8)), Paint()..color = const Color(0xFFD32F2F));
-    userTP.paint(canvas, Offset(userLabelRect.left + 6, userLabelRect.top + 3));
-
-    // Banner
-    canvas.drawRect(Rect.fromLTWH(0, 50, size.width, 28), Paint()..color = Colors.black54);
-    final bannerTP = TextPainter(text: const TextSpan(text: '🗺️ Mapa simulado — Integrar Google Maps aquí', style: TextStyle(color: Colors.white, fontSize: 11)), textDirection: TextDirection.ltr)..layout();
-    bannerTP.paint(canvas, Offset((size.width - bannerTP.width) / 2, 56));
-  }
-
-  @override
-  bool shouldRepaint(covariant _TrackingMapPainter old) => progress != old.progress || arrived != old.arrived;
 }
 
 // ============================================

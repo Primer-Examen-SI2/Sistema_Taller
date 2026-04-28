@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 
 class LocationData {
   final double latitude;
@@ -13,14 +14,50 @@ class LocationData {
 }
 
 class LocationService {
-  // TODO: Implementar con geolocator cuando se conecte al backend
   Future<LocationData> getCurrentLocation() async {
-    await Future.delayed(const Duration(seconds: 1));
-    return const LocationData(
-      latitude: -12.0464,
-      longitude: -77.0428,
-      address: 'Lima, Perú (ubicación simulada)',
+    // Verificar si los servicios de ubicación están habilitados
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      throw Exception('Los servicios de ubicación están deshabilitados. Activa tu GPS.');
+    }
+
+    // Verificar permisos
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        throw Exception('Los permisos de ubicación fueron denegados.');
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      throw Exception('Los permisos de ubicación están denegados permanentes. Actívalos en configuración.');
+    }
+
+    // Obtener ubicación actual con alta precisión
+    final position = await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 15),
+      ),
     );
+
+    return LocationData(
+      latitude: position.latitude,
+      longitude: position.longitude,
+    );
+  }
+
+  /// Stream de ubicación en tiempo real para seguimiento
+  Stream<LocationData> getLocationStream() {
+    return Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 5,
+      ),
+    ).map((position) => LocationData(
+      latitude: position.latitude,
+      longitude: position.longitude,
+    ));
   }
 }
 

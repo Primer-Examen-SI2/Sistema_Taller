@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:app_cliente/core/services/location_service.dart';
 import 'package:app_cliente/features/incident_report/domain/incident_model.dart';
 import 'package:app_cliente/features/chat/presentation/chat_screen.dart';
@@ -19,18 +21,18 @@ class _EmergencyWaitingScreenState extends ConsumerState<EmergencyWaitingScreen>
   late Timer _simTimer;
   int _elapsedSeconds = 0;
   bool _tallerAccepted = false;
+  LatLng? _currentPosition;
+  StreamSubscription<LocationData>? _locationSub;
+  final MapController _mapController = MapController();
 
   @override
   void initState() {
     super.initState();
-    // Simular que un taller acepta después de 8 segundos
+    _currentPosition = LatLng(widget.incident.latitude, widget.incident.longitude);
+    _startLocationStream();
     _simTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
+      if (!mounted) { timer.cancel(); return; }
       setState(() => _elapsedSeconds++);
-
       if (_elapsedSeconds == 8 && !_tallerAccepted) {
         timer.cancel();
         setState(() => _tallerAccepted = true);
@@ -38,30 +40,61 @@ class _EmergencyWaitingScreenState extends ConsumerState<EmergencyWaitingScreen>
     });
   }
 
+  void _startLocationStream() {
+    _locationSub = ref.read(locationServiceProvider).getLocationStream().listen((loc) {
+      if (!mounted) return;
+      setState(() {
+        _currentPosition = LatLng(loc.latitude, loc.longitude);
+      });
+      _mapController.move(LatLng(loc.latitude, loc.longitude), 15);
+    });
+  }
+
   @override
   void dispose() {
     _simTimer.cancel();
+    _locationSub?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final loc = LocationData(
-      latitude: widget.incident.latitude,
-      longitude: widget.incident.longitude,
-      address: 'Ubicación actual',
-    );
+    final userLatLng = _currentPosition ?? LatLng(widget.incident.latitude, widget.incident.longitude);
 
     return Scaffold(
       body: Stack(
         children: [
-          // Mapa simulado (fondo)
-          _SimulatedMap(location: loc),
+          // Mapa real
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: userLatLng,
+              initialZoom: 15,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
+              ),
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.app_cliente',
+              ),
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: userLatLng,
+                    width: 40,
+                    height: 40,
+                    child: const Icon(Icons.location_on, color: Color(0xFFD32F2F), size: 40),
+                  ),
+                ],
+              ),
+            ],
+          ),
 
           // Contenido superpuesto
           Column(
             children: [
-              // Header con botón cancelar
               SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -93,7 +126,6 @@ class _EmergencyWaitingScreenState extends ConsumerState<EmergencyWaitingScreen>
 
               const Spacer(),
 
-              // Panel inferior
               _BottomPanel(
                 incident: widget.incident,
                 tallerAccepted: _tallerAccepted,
@@ -126,111 +158,6 @@ class _EmergencyWaitingScreenState extends ConsumerState<EmergencyWaitingScreen>
       ),
     );
   }
-}
-
-class _SimulatedMap extends StatelessWidget {
-  final LocationData location;
-  const _SimulatedMap({required this.location});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      color: const Color(0xFFE8EAF6),
-      child: Stack(
-        children: [
-          // Cuadrícula simulada de calles
-          CustomPaint(
-            size: Size.infinite,
-            painter: _MapGridPainter(),
-          ),
-          // Marcador de ubicación
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Pulso animado
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD32F2F).withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                Transform.translate(
-                  offset: const Offset(0, -60),
-                  child: const Icon(Icons.location_on, size: 48, color: Color(0xFFD32F2F)),
-                ),
-                Transform.translate(
-                  offset: const Offset(0, -30),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
-                    ),
-                    child: Text(
-                      '${location.latitude.toStringAsFixed(4)}, ${location.longitude.toStringAsFixed(4)}',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Etiqueta "MAPA SIMULADO"
-          Positioned(
-            top: 60,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              color: Colors.black54,
-              child: const Text(
-                '🗺️ Mapa simulado — Integrar Google Maps aquí',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MapGridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 1;
-
-    // Líneas horizontales
-    for (double y = 0; y < size.height; y += 60) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-    // Líneas verticales
-    for (double x = 0; x < size.width; x += 60) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-
-    // Calles principales
-    final streetPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.8)
-      ..strokeWidth = 3;
-
-    canvas.drawLine(Offset(size.width * 0.3, 0), Offset(size.width * 0.3, size.height), streetPaint);
-    canvas.drawLine(Offset(size.width * 0.7, 0), Offset(size.width * 0.7, size.height), streetPaint);
-    canvas.drawLine(Offset(0, size.height * 0.4), Offset(size.width, size.height * 0.4), streetPaint);
-    canvas.drawLine(Offset(0, size.height * 0.7), Offset(size.width, size.height * 0.7), streetPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _BottomPanel extends StatelessWidget {
