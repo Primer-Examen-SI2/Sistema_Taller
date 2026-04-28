@@ -1,0 +1,199 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-white">Solicitudes de Asistencia</h1>
+      <p class="text-slate-400 mt-1">Gestiona las solicitudes de emergencias vehiculares</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-lg text-sm font-medium">
+        {{ availableIncidents().length }} disponibles
+      </span>
+      <span class="px-3 py-1 bg-amber-500/20 text-amber-400 rounded-lg text-sm font-medium">
+        {{ acceptedIncidents().length }} activas
+      </span>
+    </div>
+  </div>
+
+  <!-- Priority filters -->
+  <div class="flex gap-2">
+    <button (click)="setFilter('all')"
+      [class]="filterPriority() === 'all' ? 'px-4 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium transition' : 'px-4 py-2 bg-slate-800/50 text-slate-400 hover:text-white rounded-lg text-sm transition'">
+      Todas
+    </button>
+    <button (click)="setFilter('critical')"
+      [class]="filterPriority() === 'critical' ? 'px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-sm font-medium transition' : 'px-4 py-2 bg-slate-800/50 text-slate-400 hover:text-red-400 rounded-lg text-sm transition'">
+      Crítica
+    </button>
+    <button (click)="setFilter('high')"
+      [class]="filterPriority() === 'high' ? 'px-4 py-2 bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded-lg text-sm font-medium transition' : 'px-4 py-2 bg-slate-800/50 text-slate-400 hover:text-orange-400 rounded-lg text-sm transition'">
+      Alta
+    </button>
+    <button (click)="setFilter('medium')"
+      [class]="filterPriority() === 'medium' ? 'px-4 py-2 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-lg text-sm font-medium transition' : 'px-4 py-2 bg-slate-800/50 text-slate-400 hover:text-yellow-400 rounded-lg text-sm transition'">
+      Media
+    </button>
+    <button (click)="setFilter('low')"
+      [class]="filterPriority() === 'low' ? 'px-4 py-2 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg text-sm font-medium transition' : 'px-4 py-2 bg-slate-800/50 text-slate-400 hover:text-green-400 rounded-lg text-sm transition'">
+      Baja
+    </button>
+  </div>
+
+  <!-- Incidents list -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- List -->
+    <div class="lg:col-span-2 space-y-3">
+      @for (incident of filteredIncidents(); track incident.id) {
+        <div (click)="viewIncident(incident.id)"
+          class="bg-slate-800/50 border border-slate-700 hover:border-slate-600 rounded-2xl p-5 cursor-pointer transition-all duration-200">
+          <div class="flex items-start justify-between">
+            <div class="flex items-start gap-4">
+              <div [class]="getPriorityDot(incident.priority)" class="w-3 h-3 rounded-full mt-2"></div>
+              <div>
+                <div class="flex items-center gap-2 mb-1">
+                  <h3 class="text-white font-semibold">{{ incident.userName }}</h3>
+                  <span [class]="getPriorityBg(incident.priority)" class="px-2 py-0.5 rounded-md text-xs font-semibold border">
+                    {{ getPriorityLabel(incident.priority) }}
+                  </span>
+                </div>
+                <p class="text-slate-300 text-sm mb-2">{{ incident.description }}</p>
+                <div class="flex items-center gap-4 text-xs text-slate-400">
+                  <span class="flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    {{ incident.location.address }}
+                  </span>
+                  <span class="flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    {{ formatTime(incident.createdAt) }}
+                  </span>
+                  <span class="px-2 py-0.5 bg-slate-700 rounded text-slate-300">
+                    {{ getTypeLabel(incident.type) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <button (click)="$event.stopPropagation(); viewIncident(incident.id)"
+                class="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-lg text-sm font-medium transition">
+                Ver Detalle
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+      @if (filteredIncidents().length === 0) {
+        <div class="text-center py-12">
+          <svg class="w-16 h-16 text-slate-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+          </svg>
+          <p class="text-slate-400">No hay solicitudes disponibles</p>
+        </div>
+      }
+    </div>
+
+    <!-- Summary panel -->
+    <div class="lg:col-span-1">
+      <div class="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-8 text-center sticky top-6">
+        <svg class="w-16 h-16 text-slate-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+        </svg>
+        <p class="text-slate-400 font-medium mb-1">Haz clic en un incidente</p>
+        <p class="text-slate-500 text-sm">para ver el detalle completo con mapa y acciones</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Accepted incidents section -->
+  @if (acceptedIncidents().length > 0) {
+    <div class="mt-8">
+      <h2 class="text-xl font-bold text-white mb-4">Servicios Aceptados</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        @for (incident of acceptedIncidents(); track incident.id) {
+          <div class="bg-slate-800/50 border border-blue-500/20 rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <span [class]="getStatusBg(incident.status)" class="px-2 py-0.5 rounded-md text-xs font-semibold">
+                  {{ getStatusLabel(incident.status) }}
+                </span>
+                <span class="text-white font-medium text-sm">{{ incident.userName }}</span>
+              </div>
+              <span [class]="getPriorityBg(incident.priority)" class="px-2 py-0.5 rounded-md text-xs font-semibold border">
+                {{ getPriorityLabel(incident.priority) }}
+              </span>
+            </div>
+            <p class="text-slate-300 text-sm mb-2">{{ incident.description }}</p>
+            <div class="flex items-center justify-between text-xs text-slate-400 mb-3">
+              <span>{{ incident.location.address }}</span>
+            </div>
+            <button (click)="viewIncident(incident.id)"
+              class="w-full py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 rounded-xl text-sm font-medium transition">
+              Ver Detalle Completo
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
+
+<!-- Assign Technician Modal -->
+@if (showAssignModal()) {
+  <div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" (click)="closeAssignModal()">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md" (click)="$event.stopPropagation()">
+      <h3 class="text-white font-semibold text-lg mb-2">Asignar Técnico</h3>
+      @if (selectedIncident(); as inc) {
+        <p class="text-slate-400 text-sm mb-4">Incidente: {{ inc.description }}</p>
+      }
+
+      @if (availableTechnicians().length === 0) {
+        <div class="text-center py-6">
+          <p class="text-slate-400 text-sm">No hay técnicos disponibles</p>
+        </div>
+      } @else {
+        <div class="space-y-2 mb-6">
+          @for (tech of availableTechnicians(); track tech.id) {
+            <button (click)="selectTechnician(tech.id)"
+              [class]="selectedTechnicianId() === tech.id ? 'bg-amber-500/20 border-amber-500/50' : 'bg-slate-700/50 border-slate-600 hover:border-slate-500'"
+              class="w-full flex items-center gap-3 p-3 rounded-xl border text-left transition">
+              <div class="w-10 h-10 bg-amber-500/20 rounded-lg flex items-center justify-center">
+                <span class="text-amber-400 font-bold text-sm">{{ tech.name.split(' ').map(n => n[0]).join('').slice(0,2) }}</span>
+              </div>
+              <div class="flex-1">
+                <p class="text-white text-sm font-medium">{{ tech.name }}</p>
+                <p class="text-slate-400 text-xs">{{ tech.currentLocation.address }}</p>
+                <div class="flex gap-1 mt-1">
+                  @for (spec of tech.specialty; track spec) {
+                    <span class="px-1.5 py-0.5 bg-slate-600/50 rounded text-xs text-slate-300">{{ getTypeLabel(spec) }}</span>
+                  }
+                </div>
+              </div>
+              @if (selectedTechnicianId() === tech.id) {
+                <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+              }
+            </button>
+          }
+        </div>
+      }
+
+      <div class="flex gap-3">
+        <button (click)="closeAssignModal()"
+          class="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl text-sm transition">
+          Cancelar
+        </button>
+        <button (click)="acceptIncident()" [disabled]="!selectedTechnicianId()"
+          [class]="selectedTechnicianId() ? 'bg-amber-500 hover:bg-amber-600 text-slate-900' : 'bg-slate-700 text-slate-500 cursor-not-allowed'"
+          class="flex-1 py-2.5 font-semibold rounded-xl text-sm transition">
+          Confirmar Asignación
+        </button>
+      </div>
+    </div>
+  </div>
+}

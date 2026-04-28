@@ -1,0 +1,109 @@
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4 py-8">
+  <div class="w-full max-w-lg">
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-amber-500 rounded-2xl mb-4 shadow-lg shadow-amber-500/25">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+        </svg>
+      </div>
+      <h1 class="text-3xl font-bold text-white">Registrar Taller</h1>
+      <p class="text-slate-400 mt-2">Crea tu cuenta de taller mecánico</p>
+    </div>
+
+    <div class="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-8 shadow-xl">
+      @if (error) {
+        <div class="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
+          {{ error }}
+        </div>
+      }
+
+      <form (ngSubmit)="onSubmit()" class="space-y-5">
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-2">Nombre del Taller *</label>
+          <input type="text" [(ngModel)]="name" name="name"
+            class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition"
+            placeholder="Mi Taller Mecánico">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-2">Correo electrónico *</label>
+          <input type="email" [(ngModel)]="email" name="email"
+            class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition"
+            placeholder="taller@ejemplo.com">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-2">Teléfono *</label>
+          <input type="tel" [(ngModel)]="phone" name="phone"
+            class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition"
+            placeholder="+51 999 888 777">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-2">Dirección *</label>
+          <input type="text" [(ngModel)]="address" name="address"
+            class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition"
+            placeholder="Av. Principal 123, Lima">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-2">Especialidades *</label>
+          <div class="grid grid-cols-2 gap-2">
+            @for (opt of specialtyOptions; track opt.value) {
+              <button type="button" (click)="toggleSpecialty(opt.value)"
+                [class]="specialties.includes(opt.value)
+                  ? 'px-3 py-2 bg-amber-500/20 border border-amber-500/50 rounded-lg text-amber-300 text-sm font-medium transition'
+                  : 'px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-400 text-sm transition hover:border-slate-500'">
+                {{ opt.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-2">Contraseña *</label>
+          <div class="relative">
+            <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="password" name="password"
+              class="w-full px-4 pr-12 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition"
+              placeholder="Mínimo 6 caracteres">
+            <button type="button" (click)="togglePassword()"
+              class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white transition">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-2">Confirmar Contraseña *</label>
+          <input type="password" [(ngModel)]="confirmPassword" name="confirmPassword"
+            class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition"
+            placeholder="Repetir contraseña">
+        </div>
+
+        <div class="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+          <p class="text-amber-300 text-sm">
+            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Comisión del 10% sobre el precio cobrado al cliente
+          </p>
+        </div>
+
+        <button type="submit"
+          class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40">
+          Registrar Taller
+        </button>
+      </form>
+
+      <div class="mt-6 text-center">
+        <p class="text-slate-400 text-sm">
+          ¿Ya tienes cuenta?
+          <a routerLink="/login" class="text-amber-400 hover:text-amber-300 font-medium transition">Inicia sesión</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

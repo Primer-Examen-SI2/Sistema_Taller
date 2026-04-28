@@ -1,0 +1,111 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div>
+    <h1 class="text-2xl font-bold text-white">Historial de Atenciones</h1>
+    <p class="text-slate-400 mt-1">Registro completo de servicios realizados</p>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-5">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-slate-400 text-sm">Total Servicios</p>
+          <p class="text-white text-2xl font-bold mt-1">{{ totalServices() }}</p>
+        </div>
+        <div class="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
+          <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-5">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-slate-400 text-sm">Ingresos Totales</p>
+          <p class="text-white text-2xl font-bold mt-1">S/ {{ totalRevenue() }}</p>
+        </div>
+        <div class="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center">
+          <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-5">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-slate-400 text-sm">Comisión Plataforma (10%)</p>
+          <p class="text-amber-400 text-2xl font-bold mt-1">S/ {{ totalCommission() }}</p>
+        </div>
+        <div class="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center">
+          <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="flex gap-2 flex-wrap">
+    <button (click)="setFilter('all')"
+      [class]="filterType() === 'all' ? 'px-4 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium' : 'px-4 py-2 bg-slate-800/50 text-slate-400 hover:text-white rounded-lg text-sm'">
+      Todos
+    </button>
+    <button (click)="setFilter('mechanical')" [class]="filterType() === 'mechanical' ? 'px-3 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium' : 'px-3 py-2 bg-slate-800/50 text-slate-400 hover:text-white rounded-lg text-sm'">Mecánica</button>
+    <button (click)="setFilter('tire')" [class]="filterType() === 'tire' ? 'px-3 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium' : 'px-3 py-2 bg-slate-800/50 text-slate-400 hover:text-white rounded-lg text-sm'">Llantas</button>
+    <button (click)="setFilter('battery')" [class]="filterType() === 'battery' ? 'px-3 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium' : 'px-3 py-2 bg-slate-800/50 text-slate-400 hover:text-white rounded-lg text-sm'">Batería</button>
+    <button (click)="setFilter('overheating')" [class]="filterType() === 'overheating' ? 'px-3 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium' : 'px-3 py-2 bg-slate-800/50 text-slate-400 hover:text-white rounded-lg text-sm'">Sobrecalentamiento</button>
+    <button (click)="setFilter('accident')" [class]="filterType() === 'accident' ? 'px-3 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium' : 'px-3 py-2 bg-slate-800/50 text-slate-400 hover:text-white rounded-lg text-sm'">Accidente</button>
+    <button (click)="setFilter('lockout')" [class]="filterType() === 'lockout' ? 'px-3 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium' : 'px-3 py-2 bg-slate-800/50 text-slate-400 hover:text-white rounded-lg text-sm'">Llaves</button>
+  </div>
+
+  <!-- History table -->
+  <div class="bg-slate-800/50 border border-slate-700 rounded-2xl overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead>
+          <tr class="border-b border-slate-700">
+            <th class="px-5 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Fecha</th>
+            <th class="px-5 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Cliente</th>
+            <th class="px-5 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Técnico</th>
+            <th class="px-5 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Tipo</th>
+            <th class="px-5 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Prioridad</th>
+            <th class="px-5 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Costo</th>
+            <th class="px-5 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Comisión</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-700/50">
+          @for (item of filteredHistory(); track item.id) {
+            <tr class="hover:bg-slate-700/30 transition">
+              <td class="px-5 py-4 text-sm text-slate-300">{{ formatDate(item.completedAt) }}</td>
+              <td class="px-5 py-4 text-sm text-white font-medium">{{ item.clientName }}</td>
+              <td class="px-5 py-4 text-sm text-slate-300">{{ item.technicianName }}</td>
+              <td class="px-5 py-4">
+                <span class="px-2 py-1 bg-slate-700/50 rounded-lg text-xs text-slate-300">{{ getTypeLabel(item.incidentType) }}</span>
+              </td>
+              <td class="px-5 py-4">
+                <span [class]="getPriorityBg(item.priority)" class="px-2 py-1 rounded-md text-xs font-semibold border">
+                  {{ getPriorityLabel(item.priority) }}
+                </span>
+              </td>
+              <td class="px-5 py-4 text-sm text-white font-medium">S/ {{ item.cost }}</td>
+              <td class="px-5 py-4 text-sm text-amber-400">S/ {{ item.commission }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (filteredHistory().length === 0) {
+      <div class="text-center py-12">
+        <svg class="w-16 h-16 text-slate-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p class="text-slate-400">No hay registros en el historial</p>
+      </div>
+    }
+  </div>
+</div>

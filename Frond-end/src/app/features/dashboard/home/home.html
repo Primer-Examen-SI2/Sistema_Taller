@@ -1,0 +1,135 @@
+<div class="space-y-6">
+  <!-- Welcome header -->
+  <div class="flex items-center justify-between">
+    <div>
+      @if (workshop(); as ws) {
+        <h1 class="text-2xl font-bold text-white">Bienvenido, {{ ws.name }}</h1>
+      }
+      <p class="text-slate-400 mt-1">Panel de control del taller</p>
+    </div>
+    <button (click)="goToSolicitudes()"
+      class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold rounded-xl transition shadow-lg shadow-amber-500/25">
+      Ver Solicitudes
+    </button>
+  </div>
+
+  <!-- Stats cards -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Pending incidents -->
+    <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <div class="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
+          <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+          </svg>
+        </div>
+        <span class="text-2xl font-bold text-white">{{ availableIncidents().length }}</span>
+      </div>
+      <p class="text-slate-400 text-sm">Solicitudes Pendientes</p>
+    </div>
+
+    <!-- Active incidents -->
+    <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <div class="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center">
+          <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+        </div>
+        <span class="text-2xl font-bold text-white">{{ acceptedIncidents().length }}</span>
+      </div>
+      <p class="text-slate-400 text-sm">Servicios Activos</p>
+    </div>
+
+    <!-- Available technicians -->
+    <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <div class="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center">
+          <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+        </div>
+        <span class="text-2xl font-bold text-white">{{ availableTechnicians().length }}/{{ technicians().length }}</span>
+      </div>
+      <p class="text-slate-400 text-sm">Técnicos Disponibles</p>
+    </div>
+
+    <!-- Critical alerts -->
+    <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <div class="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center">
+          <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+          </svg>
+        </div>
+        <span class="text-2xl font-bold text-white">{{ criticalCount() + highCount() }}</span>
+      </div>
+      <p class="text-slate-400 text-sm">Alertas Urgentes</p>
+    </div>
+  </div>
+
+  <!-- Critical incidents alert -->
+  @if (criticalCount() > 0) {
+    <div class="bg-red-500/10 border border-red-500/30 rounded-2xl p-5">
+      <div class="flex items-center gap-3 mb-3">
+        <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+        </svg>
+        <h3 class="text-red-400 font-semibold">¡Alertas Críticas!</h3>
+      </div>
+      <p class="text-slate-300 text-sm">Hay {{ criticalCount() }} incidente(s) con prioridad crítica que requieren atención inmediata.</p>
+      <button (click)="goToSolicitudes()" class="mt-3 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-sm transition">
+        Ver incidentes críticos →
+      </button>
+    </div>
+  }
+
+  <!-- Two column layout -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Recent pending incidents -->
+    <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-5">
+      <h3 class="text-white font-semibold mb-4">Solicitudes Recientes</h3>
+      <div class="space-y-3">
+        @for (incident of availableIncidents().slice(0, 4); track incident.id) {
+          <div class="flex items-center gap-4 p-3 bg-slate-700/30 rounded-xl">
+            <div [class]="getPriorityBg(incident.priority)" class="w-2 h-12 rounded-full"></div>
+            <div class="flex-1 min-w-0">
+              <p class="text-white text-sm font-medium truncate">{{ incident.userName }}</p>
+              <p class="text-slate-400 text-xs truncate">{{ incident.description }}</p>
+            </div>
+            <span [class]="getPriorityText(incident.priority)" class="text-xs font-semibold uppercase">{{ incident.priority }}</span>
+          </div>
+        }
+        @if (availableIncidents().length === 0) {
+          <p class="text-slate-500 text-sm text-center py-4">No hay solicitudes pendientes</p>
+        }
+      </div>
+    </div>
+
+    <!-- Technicians status -->
+    <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-5">
+      <h3 class="text-white font-semibold mb-4">Estado de Técnicos</h3>
+      <div class="space-y-3">
+        @for (tech of technicians(); track tech.id) {
+          <div class="flex items-center gap-4 p-3 bg-slate-700/30 rounded-xl">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm"
+              [class]="tech.isAvailable ? 'bg-green-500/20 text-green-400' : 'bg-slate-600/50 text-slate-400'">
+              {{ tech.name.split(' ').map(n => n[0]).join('').slice(0,2) }}
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-white text-sm font-medium">{{ tech.name }}</p>
+              <p class="text-slate-400 text-xs">{{ tech.currentLocation.address }}</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full" [class]="tech.isAvailable ? 'bg-green-400' : 'bg-slate-500'"></span>
+              <span [class]="tech.isAvailable ? 'text-green-400' : 'text-slate-500'" class="text-xs">{{ tech.isAvailable ? 'Disponible' : 'Ocupado' }}</span>
+            </div>
+          </div>
+        }
+        @if (technicians().length === 0) {
+          <p class="text-slate-500 text-sm text-center py-4">No hay técnicos registrados</p>
+        }
+      </div>
+    </div>
+  </div>
+</div>

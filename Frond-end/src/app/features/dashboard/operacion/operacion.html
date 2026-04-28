@@ -1,0 +1,156 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div>
+    <h1 class="text-2xl font-bold text-white">Operación</h1>
+    <p class="text-slate-400 mt-1">Gestiona el estado de servicios y disponibilidad de técnicos</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="flex gap-2">
+    <button (click)="activeTab.set('services')"
+      [class]="activeTab() === 'services' ? 'px-4 py-2 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg text-sm font-medium' : 'px-4 py-2 bg-slate-800/50 text-slate-400 hover:text-white rounded-lg text-sm'">
+      Servicios Activos
+    </button>
+    <button (click)="activeTab.set('technicians')"
+      [class]="activeTab() === 'technicians' ? 'px-4 py-2 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg text-sm font-medium' : 'px-4 py-2 bg-slate-800/50 text-slate-400 hover:text-white rounded-lg text-sm'">
+      Gestión de Técnicos
+    </button>
+  </div>
+
+  <!-- Services tab -->
+  @if (activeTab() === 'services') {
+    <div class="space-y-4">
+      @if (acceptedIncidents().length === 0) {
+        <div class="text-center py-12 bg-slate-800/30 border border-slate-700/50 rounded-2xl">
+          <svg class="w-16 h-16 text-slate-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <p class="text-slate-400">No hay servicios activos</p>
+          <p class="text-slate-500 text-sm mt-1">Acepta solicitudes desde la pestaña de Solicitudes</p>
+        </div>
+      }
+
+      @for (incident of acceptedIncidents(); track incident.id) {
+        <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-5">
+          <div class="flex items-start justify-between mb-4">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <h3 class="text-white font-semibold">{{ incident.userName }}</h3>
+                <span [class]="getStatusBg(incident.status)" class="px-2 py-0.5 rounded-md text-xs font-semibold">
+                  {{ getStatusLabel(incident.status) }}
+                </span>
+                <span [class]="getPriorityBg(incident.priority)" class="px-2 py-0.5 rounded-md text-xs font-semibold border">
+                  {{ getPriorityLabel(incident.priority) }}
+                </span>
+              </div>
+              <p class="text-slate-300 text-sm">{{ incident.description }}</p>
+            </div>
+          </div>
+
+          <!-- Info grid -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div class="p-3 bg-slate-700/30 rounded-xl">
+              <p class="text-slate-400 text-xs">Tipo</p>
+              <p class="text-white text-sm font-medium">{{ getTypeLabel(incident.type) }}</p>
+            </div>
+            <div class="p-3 bg-slate-700/30 rounded-xl">
+              <p class="text-slate-400 text-xs">Ubicación</p>
+              <p class="text-white text-sm font-medium truncate">{{ incident.location.address }}</p>
+            </div>
+            <div class="p-3 bg-slate-700/30 rounded-xl">
+              <p class="text-slate-400 text-xs">Técnico</p>
+              <p class="text-white text-sm font-medium">{{ getTechName(incident.assignedTechnician) }}</p>
+            </div>
+            <div class="p-3 bg-slate-700/30 rounded-xl">
+              <p class="text-slate-400 text-xs">Costo Est.</p>
+              <p class="text-white text-sm font-medium">S/ {{ incident.estimatedCost || '—' }}</p>
+            </div>
+          </div>
+
+          <!-- AI Summary -->
+          <div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl mb-4">
+            <p class="text-amber-400 text-xs font-semibold mb-1">Resumen IA</p>
+            <p class="text-slate-300 text-sm">{{ incident.aiSummary }}</p>
+          </div>
+
+          <!-- Status update buttons -->
+          <div class="flex items-center gap-2">
+            <p class="text-slate-400 text-sm mr-2">Actualizar estado:</p>
+            @if (incident.status === 'accepted') {
+              <button (click)="updateIncidentStatus(incident.id, 'in_progress')"
+                class="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-lg text-sm font-medium transition">
+                Iniciar Servicio
+              </button>
+            }
+            @if (incident.status === 'in_progress') {
+              <button (click)="updateIncidentStatus(incident.id, 'completed')"
+                class="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg text-sm font-medium transition">
+                Completar Servicio
+              </button>
+            }
+            <button (click)="updateIncidentStatus(incident.id, 'rejected')"
+              class="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-sm transition">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Technicians tab -->
+  @if (activeTab() === 'technicians') {
+    <div class="space-y-4">
+      @if (technicians().length === 0) {
+        <div class="text-center py-12 bg-slate-800/30 border border-slate-700/50 rounded-2xl">
+          <svg class="w-16 h-16 text-slate-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <p class="text-slate-400">No hay técnicos registrados</p>
+        </div>
+      }
+
+      @for (tech of technicians(); track tech.id) {
+        <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div [class]="tech.isAvailable ? 'bg-green-500/20' : 'bg-slate-600/50'"
+                class="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-sm"
+                [class.text-green-400]="tech.isAvailable"
+                [class.text-slate-400]="!tech.isAvailable">
+                {{ tech.name.split(' ').map(n => n[0]).join('').slice(0,2) }}
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-white font-semibold">{{ tech.name }}</h3>
+                  <span class="flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full" [class]="tech.isAvailable ? 'bg-green-400' : 'bg-slate-500'"></span>
+                    <span [class]="tech.isAvailable ? 'text-green-400' : 'text-slate-500'" class="text-xs">{{ tech.isAvailable ? 'Disponible' : 'No disponible' }}</span>
+                  </span>
+                </div>
+                <p class="text-slate-400 text-sm">{{ tech.currentLocation.address }}</p>
+                <div class="flex gap-1 mt-1">
+                  @for (spec of tech.specialty; track spec) {
+                    <span class="px-2 py-0.5 bg-slate-700/50 rounded text-xs text-slate-300">{{ getTypeLabel(spec) }}</span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+              <div class="text-center">
+                <p class="text-white font-bold text-lg">{{ tech.activeAssignments }}</p>
+                <p class="text-slate-500 text-xs">Asignaciones</p>
+              </div>
+              <button (click)="toggleTechnicianAvailability(tech.id)"
+                [class]="tech.isAvailable ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400' : 'bg-green-500/10 hover:bg-green-500/20 text-green-400'"
+                class="px-4 py-2 rounded-xl text-sm font-medium transition">
+                {{ tech.isAvailable ? 'Desactivar' : 'Activar' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
